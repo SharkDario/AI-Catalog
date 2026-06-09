@@ -17,14 +17,14 @@ export async function POST(req: Request) {
     const query = lastUserMessage ? lastUserMessage.content : "";
 
     let contextText = "No se encontraron resultados locales.";
-    
+
     if (query) {
       // 1. Extraer palabras clave (ignorando palabras muy cortas como "de", "la", "el", "que")
-      const words = query.toLowerCase().split(/[\s\W]+/).filter(w => w.length > 3);
+      const words = query.toLowerCase().split(/[\s\W]+/).filter((w: string) => w.length > 3);
       if (words.length === 0) words.push(query.toLowerCase());
 
       // 2. Crear condiciones dinámicas para cada palabra
-      const softwareConditions = words.flatMap(w => {
+      const softwareConditions = words.flatMap((w: string) => {
         const term = `%${w}%`;
         return [
           ilike(softwareItems.name, term),
@@ -33,7 +33,7 @@ export async function POST(req: Request) {
         ];
       });
 
-      const classConditions = words.flatMap(w => {
+      const classConditions = words.flatMap((w: string) => {
         const term = `%${w}%`;
         return [
           ilike(classifications.name, term),
@@ -48,9 +48,9 @@ export async function POST(req: Request) {
         objective: softwareItems.objective,
         description: softwareItems.description
       })
-      .from(softwareItems)
-      .where(or(...softwareConditions))
-      .limit(5);
+        .from(softwareItems)
+        .where(or(...softwareConditions))
+        .limit(5);
 
       // 4. Buscar en clasificaciones
       const classMatches = await db.select({
@@ -58,22 +58,22 @@ export async function POST(req: Request) {
         name: classifications.name,
         description: classifications.description
       })
-      .from(classifications)
-      .where(or(...classConditions))
-      .limit(5);
+        .from(classifications)
+        .where(or(...classConditions))
+        .limit(5);
 
-      const formattedSoftware = softwareMatches.map(s => 
+      const formattedSoftware = softwareMatches.map(s =>
         `- SOFTWARE: [${s.name}](/catalog/${s.id})\n  Descripción: ${s.objective} ${s.description}`
       ).join("\n\n");
 
-      const formattedClasses = classMatches.map(c => 
+      const formattedClasses = classMatches.map(c =>
         `- CLASIFICACIÓN: [${c.name}](/classifications/${c.id})\n  Descripción: ${c.description}`
       ).join("\n\n");
 
       contextText = "";
       if (formattedSoftware) contextText += "=== SOFTWARE RELACIONADO ===\n" + formattedSoftware + "\n\n";
       if (formattedClasses) contextText += "=== CLASIFICACIONES RELACIONADAS ===\n" + formattedClasses + "\n\n";
-      
+
       if (!contextText) {
         contextText = "No se encontraron resultados en la base de datos para esta consulta.";
       }
