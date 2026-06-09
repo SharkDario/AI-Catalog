@@ -20,7 +20,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider localization={esES}>
+    <ClerkProvider localization={esES} afterSignOutUrl="/">
       <html lang="es" className="dark">
         <body className={`${inter.className} antialiased min-h-screen flex bg-background`}>
           <Sidebar />

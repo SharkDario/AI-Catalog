@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import Link from "next/link";
 import { Star } from "lucide-react";
 import type { Software } from "@/lib/catalog-data";
 
@@ -11,8 +11,7 @@ const licenseStyles: Record<string, string> = {
 export function SoftwareCard({ s }: { s: Software }) {
   return (
     <Link
-      to="/catalog/$id"
-      params={{ id: s.id }}
+      href={`/catalog/${s.id}`}
       className="group block rounded-xl border border-border bg-gradient-card p-5 hover:border-primary/50 hover:shadow-glow transition-all"
     >
       <div className="flex items-start justify-between gap-3">
@@ -41,3 +40,4 @@ export function SoftwareCard({ s }: { s: Software }) {
     </Link>
   );
 }
+

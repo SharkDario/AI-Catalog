@@ -1,4 +1,7 @@
-import { Link, Outlet, useRouterState } from "@tanstack/react-router";
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Home, LayoutGrid, Network, MessagesSquare, BarChart3, Mic, Settings, Sparkles } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
@@ -16,7 +19,7 @@ const nav: NavItem[] = [
 ];
 
 export function AppShell({ children }: { children?: ReactNode }) {
-  const path = useRouterState({ select: (s) => s.location.pathname });
+  const path = usePathname();
 
   return (
     <div className="min-h-screen flex w-full bg-background text-foreground">
@@ -37,7 +40,7 @@ export function AppShell({ children }: { children?: ReactNode }) {
             return (
               <Link
                 key={item.to}
-                to={item.to as any}
+                href={item.to}
                 className={cn(
                   "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-colors",
                   active
@@ -69,7 +72,7 @@ export function AppShell({ children }: { children?: ReactNode }) {
             return (
               <Link
                 key={item.to}
-                to={item.to as any}
+                href={item.to}
                 className={cn(
                   "text-xs whitespace-nowrap px-2.5 py-1.5 rounded-md",
                   active ? "bg-primary/20 text-foreground" : "text-muted-foreground"
@@ -82,9 +85,10 @@ export function AppShell({ children }: { children?: ReactNode }) {
         </div>
 
         <main className="flex-1 min-w-0">
-          {children ?? <Outlet />}
+          {children}
         </main>
       </div>
     </div>
   );
 }
+

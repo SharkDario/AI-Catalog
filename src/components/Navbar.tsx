@@ -45,7 +45,7 @@ export function Navbar() {
               <Link href="/admin" className="text-sm font-medium text-muted-foreground hover:text-primary hidden sm:block">
                 Admin
               </Link>
-              <UserButton afterSignOutUrl="/" />
+              <UserButton />
             </div>
           )}
         </div>

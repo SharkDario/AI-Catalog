@@ -61,7 +61,7 @@ export function Sidebar() {
       <div className="p-4 mt-auto border-t border-sidebar-border">
         {user ? (
           <div className="flex items-center gap-3 px-3 py-2">
-            <UserButton afterSignOutUrl="/" />
+            <UserButton />
             <div className="flex flex-col">
               <span className="text-sm font-medium leading-none">{user.firstName || "Usuario"}</span>
               <Link href="/admin" className="text-xs text-muted-foreground hover:text-primary mt-1">

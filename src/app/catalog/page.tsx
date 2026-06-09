@@ -12,24 +12,24 @@ export default async function CatalogPage({
   const params = await searchParams;
   const query = typeof params.q === 'string' ? params.q : '';
 
-  let dbQuery = db.select({
+  const baseQuery = db.select({
     software: softwareItems,
     classification: classifications.name
   })
   .from(softwareItems)
   .leftJoin(classifications, eq(softwareItems.classificationId, classifications.id));
 
-  if (query) {
-    dbQuery = dbQuery.where(
-      or(
-        ilike(softwareItems.name, `%${query}%`),
-        ilike(softwareItems.objective, `%${query}%`),
-        ilike(softwareItems.author, `%${query}%`)
-      )
-    );
-  }
-
-  const results = await dbQuery;
+  const results = await (
+    query
+      ? baseQuery.where(
+          or(
+            ilike(softwareItems.name, `%${query}%`),
+            ilike(softwareItems.objective, `%${query}%`),
+            ilike(softwareItems.author, `%${query}%`)
+          )
+        )
+      : baseQuery
+  );
 
   return (
     <div className="container mx-auto px-4 py-12">

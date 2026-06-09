@@ -29,7 +29,7 @@ export function SignSearch() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [showAbecedario, setShowAbecedario] = useState(false);
 
-  const requestRef = useRef<number>();
+  const requestRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
     const loadModel = async () => {

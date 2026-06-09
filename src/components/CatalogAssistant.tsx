@@ -74,7 +74,7 @@ export function CatalogAssistant({ item, type = "software" }: { item: CatalogIte
   // Configuración de Cámara (LSA)
   useEffect(() => {
     let stream: MediaStream | null = null;
-    let animationId: number;
+    let animationId: number = 0;
 
     const startCamera = async () => {
       try {
@@ -110,7 +110,7 @@ export function CatalogAssistant({ item, type = "software" }: { item: CatalogIte
 
   // Detección de señas en loop
   useEffect(() => {
-    let animationId: number;
+    let animationId: number = 0;
     let lastLetter = "";
     let letterCount = 0;
 
@@ -256,9 +256,9 @@ Responde preguntas de forma clara y concisa en español, basándote en esta info
               <div key={idx} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
                 <div className={`max-w-[90%] rounded-xl px-4 py-2 text-sm ${msg.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-card border border-border text-foreground shadow-sm'}`}>
                   {msg.role === 'assistant' ? (
-                    <ReactMarkdown className="prose prose-sm dark:prose-invert prose-p:my-1 prose-a:text-teal">
-                      {msg.content}
-                    </ReactMarkdown>
+                    <div className="prose prose-sm dark:prose-invert prose-p:my-1 prose-a:text-teal">
+                      <ReactMarkdown>{msg.content}</ReactMarkdown>
+                    </div>
                   ) : (
                     msg.content
                   )}
