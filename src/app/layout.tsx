@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Geist } from "next/font/google";
 import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
 import { esES } from "@clerk/localizations";
@@ -13,6 +13,10 @@ export const metadata: Metadata = {
 };
 
 import { GlobalAccessibility } from "@/components/accessibility/GlobalAccessibility";
+import { cn } from "@/lib/utils";
+
+const geist = Geist({subsets:['latin'],variable:'--font-sans'});
+
 
 export default function RootLayout({
   children,
@@ -21,7 +25,7 @@ export default function RootLayout({
 }>) {
   return (
     <ClerkProvider localization={esES} afterSignOutUrl="/">
-      <html lang="es" className="dark">
+      <html lang="es" className={cn("dark", "font-sans", geist.variable)}>
         <body className={`${inter.className} antialiased min-h-screen flex bg-background`}>
           <Sidebar />
           <div className="flex-1 overflow-y-auto">
