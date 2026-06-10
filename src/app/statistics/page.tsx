@@ -1,41 +1,69 @@
 import { db } from "@/db";
-import { softwareItems, classifications } from "@/db/schema";
-import { sql } from "drizzle-orm";
-import { BarChart2, TrendingUp } from "lucide-react";
+import { softwareItems, classifications, forumThreads, ratings, classificationRatings, forumThreadRatings } from "@/db/schema";
+import { sql, eq } from "drizzle-orm";
+import { BarChart2 } from "lucide-react";
+import { StatisticsDashboard, ItemStats } from "@/components/StatisticsDashboard";
 
 export default async function StatisticsPage() {
-  const [{ count: totalSoftware }] = await db.select({ count: sql`count(*)`.mapWith(Number) }).from(softwareItems);
-  const [{ count: totalClassifications }] = await db.select({ count: sql`count(*)`.mapWith(Number) }).from(classifications);
-  
+  const softwareData = await db.select({
+    id: softwareItems.id,
+    name: softwareItems.name,
+    views: softwareItems.views,
+    avgRating: sql<number>`COALESCE(AVG(${ratings.score}), 0)`.mapWith(Number),
+    rating1: sql<number>`COUNT(CASE WHEN ${ratings.score} = 1 THEN 1 END)`.mapWith(Number),
+    rating2: sql<number>`COUNT(CASE WHEN ${ratings.score} = 2 THEN 1 END)`.mapWith(Number),
+    rating3: sql<number>`COUNT(CASE WHEN ${ratings.score} = 3 THEN 1 END)`.mapWith(Number),
+    rating4: sql<number>`COUNT(CASE WHEN ${ratings.score} = 4 THEN 1 END)`.mapWith(Number),
+    rating5: sql<number>`COUNT(CASE WHEN ${ratings.score} = 5 THEN 1 END)`.mapWith(Number),
+  })
+  .from(softwareItems)
+  .leftJoin(ratings, eq(softwareItems.id, ratings.softwareItemId))
+  .groupBy(softwareItems.id);
+
+  const classificationData = await db.select({
+    id: classifications.id,
+    name: classifications.name,
+    views: classifications.views,
+    avgRating: sql<number>`COALESCE(AVG(${classificationRatings.score}), 0)`.mapWith(Number),
+    rating1: sql<number>`COUNT(CASE WHEN ${classificationRatings.score} = 1 THEN 1 END)`.mapWith(Number),
+    rating2: sql<number>`COUNT(CASE WHEN ${classificationRatings.score} = 2 THEN 1 END)`.mapWith(Number),
+    rating3: sql<number>`COUNT(CASE WHEN ${classificationRatings.score} = 3 THEN 1 END)`.mapWith(Number),
+    rating4: sql<number>`COUNT(CASE WHEN ${classificationRatings.score} = 4 THEN 1 END)`.mapWith(Number),
+    rating5: sql<number>`COUNT(CASE WHEN ${classificationRatings.score} = 5 THEN 1 END)`.mapWith(Number),
+  })
+  .from(classifications)
+  .leftJoin(classificationRatings, eq(classifications.id, classificationRatings.classificationId))
+  .groupBy(classifications.id);
+
+  const debateData = await db.select({
+    id: forumThreads.id,
+    name: forumThreads.title,
+    views: forumThreads.views,
+    avgRating: sql<number>`COALESCE(AVG(${forumThreadRatings.score}), 0)`.mapWith(Number),
+    rating1: sql<number>`COUNT(CASE WHEN ${forumThreadRatings.score} = 1 THEN 1 END)`.mapWith(Number),
+    rating2: sql<number>`COUNT(CASE WHEN ${forumThreadRatings.score} = 2 THEN 1 END)`.mapWith(Number),
+    rating3: sql<number>`COUNT(CASE WHEN ${forumThreadRatings.score} = 3 THEN 1 END)`.mapWith(Number),
+    rating4: sql<number>`COUNT(CASE WHEN ${forumThreadRatings.score} = 4 THEN 1 END)`.mapWith(Number),
+    rating5: sql<number>`COUNT(CASE WHEN ${forumThreadRatings.score} = 5 THEN 1 END)`.mapWith(Number),
+  })
+  .from(forumThreads)
+  .leftJoin(forumThreadRatings, eq(forumThreads.id, forumThreadRatings.threadId))
+  .groupBy(forumThreads.id);
+
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-8">
       <div className="mb-8">
         <h1 className="text-4xl font-bold mb-4 text-foreground flex items-center gap-3">
-          <BarChart2 className="h-10 w-10 text-primary" /> Estadísticas
+          <BarChart2 className="h-10 w-10 text-primary" /> Dashboard de Estadísticas
         </h1>
-        <p className="text-lg text-muted-foreground">Métricas generales de la plataforma y el catálogo de software.</p>
+        <p className="text-lg text-muted-foreground">Analiza el rendimiento y popularidad de los distintos artículos en la plataforma.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-          <div className="text-muted-foreground uppercase tracking-wider text-xs font-semibold mb-2">Total Software</div>
-          <div className="text-4xl font-bold text-foreground">{totalSoftware}</div>
-        </div>
-        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-          <div className="text-muted-foreground uppercase tracking-wider text-xs font-semibold mb-2">Total Categorías</div>
-          <div className="text-4xl font-bold text-teal">{totalClassifications}</div>
-        </div>
-        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-          <div className="text-muted-foreground uppercase tracking-wider text-xs font-semibold mb-2">Métricas de Actividad</div>
-          <div className="text-4xl font-bold text-accent">En vivo</div>
-        </div>
-      </div>
-
-      <div className="bg-card border border-border rounded-2xl p-8 shadow-sm text-center py-20 mt-8">
-        <TrendingUp className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
-        <h2 className="text-2xl font-bold mb-2">Más estadísticas próximamente</h2>
-        <p className="text-muted-foreground">Estamos trabajando para integrar gráficos interactivos con Recharts en futuras versiones para mostrar el crecimiento de usuarios y visitas por categoría.</p>
-      </div>
+      <StatisticsDashboard 
+        softwareStats={softwareData}
+        classificationsStats={classificationData}
+        debatesStats={debateData}
+      />
     </div>
   );
 }

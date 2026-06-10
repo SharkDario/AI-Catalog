@@ -4,16 +4,22 @@ import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
 import { Trash2 } from "lucide-react";
 import { useTransition } from "react";
+import { useRouter } from "next/navigation";
 
 const MySwal = withReactContent(Swal);
 
 export function DeleteButton({ 
   onDelete, 
-  itemType = "elemento" 
+  itemType = "elemento",
+  article = "El",
+  redirectTo,
 }: { 
-  onDelete: () => Promise<void>;
+  onDelete: () => Promise<boolean>;
   itemType?: string;
+  article?: string;
+  redirectTo?: string;
 }) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
   const handleDelete = () => {
@@ -26,36 +32,52 @@ export function DeleteButton({
       cancelButtonColor: "hsl(var(--muted))",
       confirmButtonText: "Sí, eliminar",
       cancelButtonText: "Cancelar",
-      background: "hsl(var(--card))",
-      color: "hsl(var(--foreground))",
+      background: "#0f172a", // Dark background
+      color: "#f8fafc", // Light text
       customClass: {
-        popup: "border border-border rounded-xl shadow-2xl",
-        title: "text-foreground font-bold",
-        htmlContainer: "text-muted-foreground",
+        popup: "border border-slate-700 rounded-xl shadow-2xl",
+        title: "text-slate-50 font-bold",
+        htmlContainer: "text-slate-300",
       }
     }).then((result) => {
       if (result.isConfirmed) {
         startTransition(async () => {
           try {
-            await onDelete();
-            MySwal.fire({
-              title: "¡Eliminado!",
-              text: `El ${itemType} ha sido eliminado con éxito.`,
-              icon: "success",
-              background: "hsl(var(--card))",
-              color: "hsl(var(--foreground))",
-              confirmButtonColor: "hsl(var(--primary))",
-              customClass: {
-                popup: "border border-border rounded-xl shadow-2xl",
-              }
-            });
+            const success = await onDelete();
+            if (success !== false) {
+              // Navigate immediately to avoid the 404 flash caused by revalidatePath
+              if (redirectTo) router.replace(redirectTo);
+              // Show a non-blocking toast on top of the new page
+              const isFeminine = article.toLowerCase() === "la";
+              MySwal.mixin({
+                toast: true,
+                position: "top-end",
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true,
+                background: "#0f172a",
+                color: "#f8fafc",
+              }).fire({
+                icon: "success",
+                title: `${article} ${itemType} ha sido eliminad${isFeminine ? "a" : "o"} con éxito.`,
+              });
+            } else {
+              MySwal.fire({
+                title: "Error",
+                text: "Hubo un problema al intentar eliminarlo.",
+                icon: "error",
+                background: "#0f172a",
+                color: "#f8fafc",
+                confirmButtonColor: "hsl(var(--primary))",
+              });
+            }
           } catch (error) {
             MySwal.fire({
               title: "Error",
               text: "Hubo un problema al intentar eliminarlo.",
               icon: "error",
-              background: "hsl(var(--card))",
-              color: "hsl(var(--foreground))",
+              background: "#0f172a",
+              color: "#f8fafc",
               confirmButtonColor: "hsl(var(--primary))",
             });
           }

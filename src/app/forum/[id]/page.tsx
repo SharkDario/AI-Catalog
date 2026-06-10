@@ -91,7 +91,7 @@ export default async function ThreadDetail({ params, searchParams }: { params: P
               {isOwner && (
                 <div className="flex gap-2">
                   <Link href={`/forum/${thread.id}?edit=true`} className="text-blue-500 hover:bg-blue-500/10 p-2 rounded-md transition-colors"><Edit className="h-4 w-4" /></Link>
-                  <DeleteButton onDelete={async () => { "use server"; await deleteThread(thread.id); }} itemType="debate" />
+                  <DeleteButton onDelete={async () => { "use server"; return await deleteThread(thread.id); }} itemType="debate" redirectTo="/forum" />
                 </div>
               )}
             </div>

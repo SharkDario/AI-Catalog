@@ -2,10 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Hand, Camera, XCircle, Search, Trash2, ArrowLeft } from "lucide-react";
-import "@tensorflow/tfjs-backend-webgl";
-import * as handpose from "@tensorflow-models/handpose";
+import { FilesetResolver, HandLandmarker } from "@mediapipe/tasks-vision";
 
-import { detectLetter } from "@/lib/handposeHelpers";
+import { detectLetter, Point } from "@/lib/lsa-detector";
 
 import ReactMarkdown from "react-markdown";
 import { CollapsibleMessage } from "./CollapsibleMessage";
@@ -19,7 +18,7 @@ interface Message {
 export function SignSearch() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [model, setModel] = useState<handpose.HandPose | null>(null);
+  const [model, setModel] = useState<HandLandmarker | null>(null);
   const [isCameraOn, setIsCameraOn] = useState(false);
   const [query, setQuery] = useState("");
   const [currentLetter, setCurrentLetter] = useState<string | null>(null);
@@ -34,10 +33,20 @@ export function SignSearch() {
   useEffect(() => {
     const loadModel = async () => {
       try {
-        const loadedModel = await handpose.load();
-        setModel(loadedModel);
+        const vision = await FilesetResolver.forVisionTasks(
+          "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
+        );
+        const landmarker = await HandLandmarker.createFromOptions(vision, {
+          baseOptions: {
+            modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
+            delegate: "GPU",
+          },
+          runningMode: "VIDEO",
+          numHands: 2,
+        });
+        setModel(landmarker);
       } catch (err) {
-        console.error("Error cargando handpose", err);
+        console.error("Error cargando MediaPipe Hands", err);
       }
     };
     loadModel();
@@ -48,9 +57,11 @@ export function SignSearch() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
       videoRef.current.srcObject = stream;
-      videoRef.current.play();
-      setIsCameraOn(true);
-      detectHands();
+      // Esperar a que el video cargue metadatos antes de reproducir
+      videoRef.current.onloadedmetadata = () => {
+        videoRef.current?.play();
+        setIsCameraOn(true);
+      };
     } catch (err) {
       console.error("Error accediendo a la cámara", err);
     }
@@ -59,70 +70,99 @@ export function SignSearch() {
   const stopCamera = () => {
     if (videoRef.current && videoRef.current.srcObject) {
       const stream = videoRef.current.srcObject as MediaStream;
-      stream.getTracks().forEach(track => track.stop());
+      stream.getTracks().forEach((track) => track.stop());
       videoRef.current.srcObject = null;
     }
     setIsCameraOn(false);
     if (requestRef.current) cancelAnimationFrame(requestRef.current);
   };
 
-  const detectHands = async () => {
-    if (videoRef.current && canvasRef.current && model) {
-      const video = videoRef.current;
-      const canvas = canvasRef.current;
-      const ctx = canvas.getContext("2d");
+  useEffect(() => {
+    let lastVideoTime = -1;
 
-      if (video.readyState === 4 && ctx) {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
+    const detectHands = () => {
+      if (isCameraOn && videoRef.current && canvasRef.current && model) {
+        const video = videoRef.current;
+        const canvas = canvasRef.current;
+        const ctx = canvas.getContext("2d");
 
-        const predictions = await model.estimateHands(video);
-
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        if (predictions.length > 0) {
-          const landmarks = predictions[0].landmarks;
-
-          for (let i = 0; i < landmarks.length; i++) {
-            const [x, y] = landmarks[i];
-            ctx.beginPath();
-            ctx.arc(x, y, 5, 0, 2 * Math.PI);
-            ctx.fillStyle = "#06b6d4";
-            ctx.fill();
+        if (video.readyState >= 2 && ctx) {
+          if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
           }
 
-          const drawPath = (points: number[]) => {
-            const region = new Path2D();
-            region.moveTo(landmarks[points[0]][0], landmarks[points[0]][1]);
-            for (let i = 1; i < points.length; i++) {
-              region.lineTo(landmarks[points[i]][0], landmarks[points[i]][1]);
+          // Solo procesar si el frame del video avanzó
+          if (video.currentTime !== lastVideoTime) {
+            lastVideoTime = video.currentTime;
+            const results = model.detectForVideo(video, performance.now());
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (results.landmarks && results.landmarks.length > 0) {
+              // Renderizar todas las manos detectadas
+              results.landmarks.forEach(landmarks => {
+                for (let i = 0; i < landmarks.length; i++) {
+                  const { x, y } = landmarks[i];
+                  ctx.beginPath();
+                  ctx.arc(x * canvas.width, y * canvas.height, 5, 0, 2 * Math.PI);
+                  ctx.fillStyle = "#06b6d4";
+                  ctx.fill();
+                }
+
+                const drawPath = (points: number[]) => {
+                  const region = new Path2D();
+                  region.moveTo(landmarks[points[0]].x * canvas.width, landmarks[points[0]].y * canvas.height);
+                  for (let i = 1; i < points.length; i++) {
+                    region.lineTo(landmarks[points[i]].x * canvas.width, landmarks[points[i]].y * canvas.height);
+                  }
+                  ctx.strokeStyle = "rgba(6, 182, 212, 0.5)";
+                  ctx.lineWidth = 2;
+                  ctx.stroke(region);
+                };
+
+                drawPath([0, 1, 2, 3, 4]);
+                drawPath([0, 5, 6, 7, 8]);
+                drawPath([0, 9, 10, 11, 12]);
+                drawPath([0, 13, 14, 15, 16]);
+                drawPath([0, 17, 18, 19, 20]);
+              });
+
+              const scaledHands = results.landmarks.map(hand => 
+                hand.map(lm => ({
+                  x: lm.x * canvas.width,
+                  y: lm.y * canvas.height,
+                  z: lm.z * canvas.width
+                }))
+              );
+
+              const letter = detectLetter(scaledHands);
+              setCurrentLetter(letter);
+            } else {
+              setCurrentLetter(null);
             }
-            ctx.strokeStyle = "rgba(6, 182, 212, 0.5)";
-            ctx.lineWidth = 2;
-            ctx.stroke(region);
-          };
-
-          drawPath([0, 1, 2, 3, 4]);
-          drawPath([0, 5, 6, 7, 8]);
-          drawPath([0, 9, 10, 11, 12]);
-          drawPath([0, 13, 14, 15, 16]);
-          drawPath([0, 17, 18, 19, 20]);
-
-          const letter = detectLetter(landmarks);
-          setCurrentLetter(letter);
-        } else {
-          setCurrentLetter(null);
+          }
         }
       }
+      if (isCameraOn) {
+        requestRef.current = requestAnimationFrame(detectHands);
+      }
+    };
+
+    if (isCameraOn) {
+      detectHands();
     }
-    requestRef.current = requestAnimationFrame(detectHands);
-  };
+
+    return () => {
+      if (requestRef.current) cancelAnimationFrame(requestRef.current);
+    };
+  }, [isCameraOn, model]);
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (currentLetter) {
       timer = setTimeout(() => {
-        setQuery(prev => prev + currentLetter);
+        setQuery((prev) => prev + currentLetter);
         setLetterHoldTime(0);
       }, 1000);
     }
@@ -131,27 +171,49 @@ export function SignSearch() {
 
   const handleSearch = async () => {
     if (!query) return;
-    
+
     const newMessages: Message[] = [...messages, { role: "user", content: query }];
     setMessages(newMessages);
     setIsLoading(true);
     setQuery("");
 
     try {
-      const res = await fetch("/api/assistant", {
+      // 1. Obtener contexto del backend
+      const ctxRes = await fetch("/api/assistant", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages: newMessages }),
       });
-      const data = await res.json();
+      const ctxData = await ctxRes.json();
       
-      if (data.answer) {
-        setMessages(prev => [...prev, { role: "assistant", content: data.answer }]);
-      } else if (data.error) {
-        setMessages(prev => [...prev, { role: "assistant", content: `Error: ${data.error}` }]);
-      }
+      const systemPrompt = ctxData.systemPrompt || "Eres un asistente virtual.";
+
+      const ollamaMessages = [
+        { role: "system", content: systemPrompt },
+        ...newMessages,
+      ];
+
+      // 2. Hacer la petición local a Ollama (Cliente)
+      const ollamaRes = await fetch("http://localhost:11434/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "llama3.2:3b",
+          messages: ollamaMessages,
+          stream: false,
+        }),
+      });
+
+      if (!ollamaRes.ok) throw new Error("Error en Ollama");
+
+      const ollamaData = await ollamaRes.json();
+
+      setMessages((prev) => [...prev, { role: "assistant", content: ollamaData.message.content }]);
     } catch (e: any) {
-      setMessages(prev => [...prev, { role: "assistant", content: `Error de red: ${e.message}` }]);
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: `Hubo un error al conectar con Ollama en localhost:11434. Asegúrate de tenerlo instalado y ejecutándose localmente.` },
+      ]);
     } finally {
       setIsLoading(false);
     }
@@ -163,7 +225,7 @@ export function SignSearch() {
   };
 
   const hasSearched = messages.length > 0;
-  const lastAssistantMessage = [...messages].reverse().find(m => m.role === "assistant");
+  const lastAssistantMessage = [...messages].reverse().find((m) => m.role === "assistant");
 
   return (
     <div className={`bg-card border border-border rounded-2xl p-8 shadow-sm flex flex-col h-full transition-all duration-500 ${hasSearched ? 'lg:col-span-2 lg:row-span-2' : ''}`}>
@@ -171,10 +233,10 @@ export function SignSearch() {
         <div className="bg-teal/20 p-2 rounded-lg">
           <Hand className="w-5 h-5 text-teal" />
         </div>
-        <h2 className="text-xl font-bold text-foreground">Lenguaje de Señas (Chat)</h2>
+        <h2 className="text-xl font-bold text-foreground">Lengua de Señas (Chat)</h2>
       </div>
       <p className="text-muted-foreground mb-8">
-        Usa tu cámara para deletrear palabras. Mantén la seña 1 segundo para registrar la letra. El asistente buscará en la base de datos y recordará nuestra conversación.
+        Usa tu cámara para deletrear palabras. Mantén la seña un segundo para registrar la letra. El asistente buscará en la base de datos y recordará nuestra conversación.
       </p>
 
       <div className={`flex flex-col ${hasSearched ? 'lg:flex-row lg:gap-12' : ''} flex-1`}>

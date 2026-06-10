@@ -4,10 +4,13 @@ import { createThread } from "@/lib/actions/forum";
 import { currentUser } from "@clerk/nextjs/server";
 import Link from "next/link";
 import { MessageSquare, Calendar, Tag, MonitorSmartphone, Eye, Star, MessageCircle } from "lucide-react";
-import { desc, eq, sql } from "drizzle-orm";
+import { desc, eq, sql, ilike, or } from "drizzle-orm";
+import { ForumSearchBar } from "@/components/ForumSearchBar";
 
-export default async function ForumPage() {
-  const data = await db.select({
+export default async function ForumPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
+  const params = await searchParams;
+
+  let query = db.select({
     thread: forumThreads,
     classification: classifications,
     software: softwareItems,
@@ -18,7 +21,19 @@ export default async function ForumPage() {
   .leftJoin(classifications, eq(forumThreads.classificationId, classifications.id))
   .leftJoin(softwareItems, eq(forumThreads.softwareItemId, softwareItems.id))
   .leftJoin(forumThreadRatings, eq(forumThreads.id, forumThreadRatings.threadId))
-  .leftJoin(forumComments, eq(forumThreads.id, forumComments.threadId))
+  .leftJoin(forumComments, eq(forumThreads.id, forumComments.threadId));
+
+  if (params?.q) {
+    const term = `%${params.q}%`;
+    query = query.where(or(
+      ilike(forumThreads.title, term),
+      ilike(forumThreads.content, term),
+      ilike(classifications.name, term),
+      ilike(softwareItems.name, term)
+    )) as any;
+  }
+
+  const data = await query
   .groupBy(forumThreads.id, classifications.id, softwareItems.id)
   .orderBy(desc(forumThreads.createdAt));
 
@@ -29,12 +44,14 @@ export default async function ForumPage() {
 
   return (
     <div className="container mx-auto px-4 py-12">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-6">
-        <div>
-          <h1 className="text-4xl font-bold mb-2 text-foreground flex items-center gap-3">
-            <MessageSquare className="h-8 w-8 text-primary" /> Foro de Debates
-          </h1>
-          <p className="text-lg text-muted-foreground">Comparte tus ideas y discute sobre Inteligencia Artificial.</p>
+      <div className="mb-8">
+        <h1 className="text-4xl font-bold mb-2 text-foreground flex items-center gap-3">
+          <MessageSquare className="h-8 w-8 text-primary" /> Foro de Debates
+        </h1>
+        <p className="text-lg text-muted-foreground mb-6">Comparte tus ideas y discute sobre Inteligencia Artificial.</p>
+        
+        <div className="w-full">
+          <ForumSearchBar defaultValue={params?.q} />
         </div>
       </div>
 
@@ -80,7 +97,9 @@ export default async function ForumPage() {
 
           {data.length === 0 && (
             <div className="text-center py-16 bg-card rounded-xl border border-border">
-              <h3 className="text-xl font-medium text-muted-foreground">Aún no hay hilos de debate. ¡Sé el primero en participar!</h3>
+              <h3 className="text-xl font-medium text-muted-foreground">
+                {params?.q ? "No se encontraron debates para tu búsqueda." : "Aún no hay hilos de debate. ¡Sé el primero en participar!"}
+              </h3>
             </div>
           )}
         </div>

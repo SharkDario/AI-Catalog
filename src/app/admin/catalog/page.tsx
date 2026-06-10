@@ -116,9 +116,11 @@ export default async function AdminCatalog({ searchParams }: { searchParams: Pro
                     <DeleteButton 
                       onDelete={async () => {
                         "use server";
-                        await deleteSoftwareItem(item.software.id);
+                        return await deleteSoftwareItem(item.software.id);
                       }} 
-                      itemType="software" 
+                      itemType="software"
+                      article="El"
+                      redirectTo="/admin/catalog"
                     />
                   </div>
                 </td>

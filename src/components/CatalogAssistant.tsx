@@ -3,9 +3,8 @@
 import { useState, useRef, useEffect } from "react";
 import { MessageSquare, X, Send, Bot, Loader2, Mic, MicOff, Camera, Hand, Volume2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
-import * as handpose from "@tensorflow-models/handpose";
-import "@tensorflow/tfjs-backend-webgl";
-import { detectLetter } from "@/lib/handposeHelpers";
+import { FilesetResolver, HandLandmarker } from "@mediapipe/tasks-vision";
+import { detectLetter } from "@/lib/lsa-detector";
 import { FingerSpeller } from "@/components/accessibility/FingerSpeller";
 
 interface CatalogItem {
@@ -24,7 +23,7 @@ export function CatalogAssistant({ item, type = "software" }: { item: CatalogIte
   // Estados de accesibilidad
   const [isListening, setIsListening] = useState(false);
   const [isCameraOn, setIsCameraOn] = useState(false);
-  const [model, setModel] = useState<handpose.HandPose | null>(null);
+  const [model, setModel] = useState<HandLandmarker | null>(null);
   const [activeSpellerText, setActiveSpellerText] = useState<string | null>(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -71,10 +70,9 @@ export function CatalogAssistant({ item, type = "software" }: { item: CatalogIte
 
   const toggleListen = () => setIsListening(!isListening);
 
-  // Configuración de Cámara (LSA)
+  // Configuración de Cámara y MediaPipe
   useEffect(() => {
     let stream: MediaStream | null = null;
-    let animationId: number = 0;
 
     const startCamera = async () => {
       try {
@@ -83,8 +81,18 @@ export function CatalogAssistant({ item, type = "software" }: { item: CatalogIte
           videoRef.current.srcObject = stream;
         }
         if (!model) {
-          const loadedModel = await handpose.load();
-          setModel(loadedModel);
+          const vision = await FilesetResolver.forVisionTasks(
+            "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
+          );
+          const landmarker = await HandLandmarker.createFromOptions(vision, {
+            baseOptions: {
+              modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
+              delegate: "GPU",
+            },
+            runningMode: "VIDEO",
+            numHands: 2,
+          });
+          setModel(landmarker);
         }
       } catch (err) {
         console.error("Error al acceder a la cámara:", err);
@@ -104,7 +112,6 @@ export function CatalogAssistant({ item, type = "software" }: { item: CatalogIte
 
     return () => {
       if (stream) stream.getTracks().forEach(t => t.stop());
-      cancelAnimationFrame(animationId);
     };
   }, [isCameraOn, model]);
 
@@ -113,32 +120,47 @@ export function CatalogAssistant({ item, type = "software" }: { item: CatalogIte
     let animationId: number = 0;
     let lastLetter = "";
     let letterCount = 0;
+    let lastVideoTime = -1;
 
-    const detect = async () => {
+    const detect = () => {
       if (isCameraOn && videoRef.current && canvasRef.current && model) {
-        if (videoRef.current.readyState === 4) {
-          const video = videoRef.current;
-          const canvas = canvasRef.current;
-          const ctx = canvas.getContext("2d");
-          canvas.width = video.videoWidth;
-          canvas.height = video.videoHeight;
+        const video = videoRef.current;
+        const canvas = canvasRef.current;
+        const ctx = canvas.getContext("2d");
 
-          const predictions = await model.estimateHands(video);
+        if (video.readyState >= 2 && ctx) {
+          if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+          }
 
-          if (ctx) {
+          if (video.currentTime !== lastVideoTime) {
+            lastVideoTime = video.currentTime;
+            const results = model.detectForVideo(video, performance.now());
+
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            if (predictions.length > 0) {
-              const landmarks = predictions[0].landmarks;
-              // Dibujar puntos
-              for (let i = 0; i < landmarks.length; i++) {
-                const [x, y] = landmarks[i];
+            // Dibujar puntos escalados para cada mano
+            results.landmarks.forEach(rawLandmarks => {
+              for (let i = 0; i < rawLandmarks.length; i++) {
+                const x = rawLandmarks[i].x * canvas.width;
+                const y = rawLandmarks[i].y * canvas.height;
                 ctx.beginPath();
                 ctx.arc(x, y, 5, 0, 3 * Math.PI);
                 ctx.fillStyle = "teal";
                 ctx.fill();
               }
+            });
 
-              const letter = detectLetter(landmarks);
+            // Escalar para el detector
+            const scaledHands = results.landmarks.map(hand => 
+              hand.map(lm => ({
+                x: lm.x * canvas.width,
+                y: lm.y * canvas.height,
+                z: lm.z * canvas.width
+              }))
+            );
+
+            const letter = detectLetter(scaledHands);
               if (letter) {
                 if (letter === lastLetter) {
                   letterCount++;
@@ -167,8 +189,9 @@ export function CatalogAssistant({ item, type = "software" }: { item: CatalogIte
             }
           }
         }
+      if (isCameraOn) {
+        animationId = requestAnimationFrame(detect);
       }
-      animationId = requestAnimationFrame(detect);
     };
 
     if (isCameraOn) {

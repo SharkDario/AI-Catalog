@@ -93,30 +93,9 @@ Reglas:
 4. Recuerda el historial de la conversación que se incluye en los mensajes.
 `;
 
-    // Inyectar el system prompt al inicio
-    const ollamaMessages = [
-      { role: "system", content: systemPrompt },
-      ...messages
-    ];
-
-    const ollamaResponse = await fetch("http://localhost:11434/api/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "llama3.2:3b",
-        messages: ollamaMessages,
-        stream: false,
-      }),
-    });
-
-    if (!ollamaResponse.ok) {
-      throw new Error(`Ollama error: ${ollamaResponse.statusText}`);
-    }
-
-    const ollamaData = await ollamaResponse.json();
-
+    // Devolver el contexto al cliente para que haga la petición a Ollama en su localhost
     return NextResponse.json({
-      answer: ollamaData.message.content
+      systemPrompt
     });
   } catch (error: any) {
     console.error("Assistant API Error:", error);

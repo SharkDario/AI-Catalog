@@ -50,6 +50,7 @@ export async function deleteClassification(id: number) {
   await db.delete(classifications).where(eq(classifications.id, id));
   revalidatePath("/admin/classifications");
   revalidatePath("/classifications");
+  return true;
 }
 
 // --- Software Items (Catalog) ---
@@ -117,6 +118,7 @@ export async function deleteSoftwareItem(id: number) {
   await db.delete(softwareItems).where(eq(softwareItems.id, id));
   revalidatePath("/admin/catalog");
   revalidatePath("/catalog");
+  return true;
 }
 
 // --- Classification Examples ---
@@ -167,4 +169,5 @@ export async function deleteClassificationExample(id: number) {
   await db.delete(classificationExamples).where(eq(classificationExamples.id, id));
   revalidatePath("/admin/classifications");
   revalidatePath("/classifications");
+  return true;
 }

@@ -14,6 +14,7 @@ export const classifications = pgTable('classifications', {
   imageUrl: text('image_url'),
   examples: text('examples'),
   usefulLinks: text('useful_links'),
+  views: integer('views').default(0).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 

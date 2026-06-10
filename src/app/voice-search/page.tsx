@@ -10,7 +10,7 @@ export default function AccessibilityPage() {
       <div className="max-w-4xl">
         <h1 className="text-4xl font-bold mb-4 text-foreground">Centro de Accesibilidad</h1>
         <p className="text-lg text-muted-foreground leading-relaxed">
-          Una superficie de investigación explorando cómo el reconocimiento de voz natural, la detección de gestos manuales y el seguimiento ocular pueden potenciar la búsqueda y navegación web accesible, integrando <span className="text-teal font-medium">Modelos Locales de Lenguaje (Ollama)</span>, <span className="text-teal font-medium">TensorFlow.js Handpose</span> y <span className="text-teal font-medium">WebGazer.js</span>.
+          Una superficie de investigación explorando cómo el reconocimiento de voz natural, la detección de gestos manuales y el seguimiento ocular pueden potenciar la búsqueda y navegación web accesible, integrando <span className="text-teal font-medium">Modelos Locales de Lenguaje (Ollama)</span>, <span className="text-teal font-medium">MediaPipe Hands</span> y <span className="text-teal font-medium">WebGazer.js</span>.
         </p>
       </div>
 

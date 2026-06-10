@@ -90,9 +90,10 @@ export default async function AdminClassificationExamples({ params, searchParams
                     <DeleteButton 
                       onDelete={async () => {
                         "use server";
-                        await deleteClassificationExample(item.id);
+                        return await deleteClassificationExample(item.id);
                       }} 
-                      itemType="ejemplo" 
+                      itemType="ejemplo"
+                      article="El"
                     />
                   </div>
                 </td>

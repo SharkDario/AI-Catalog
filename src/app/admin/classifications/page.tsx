@@ -80,9 +80,11 @@ export default async function AdminClassifications({ searchParams }: { searchPar
                     <DeleteButton 
                       onDelete={async () => {
                         "use server";
-                        await deleteClassification(item.id);
+                        return await deleteClassification(item.id);
                       }} 
-                      itemType="clasificación" 
+                      itemType="clasificación"
+                      article="La"
+                      redirectTo="/admin/classifications"
                     />
                   </div>
                 </td>

@@ -70,16 +70,17 @@ import { redirect } from "next/navigation";
 
 export async function deleteThread(threadId: number) {
   const user = await currentUser();
-  if (!user) throw new Error("Unauthorized");
+  if (!user) return false;
 
   const [thread] = await db.select().from(forumThreads).where(eq(forumThreads.id, threadId));
   if (!thread || thread.userId !== user.id) {
-    throw new Error("Unauthorized");
+    return false;
   }
 
   await db.delete(forumThreads).where(eq(forumThreads.id, threadId));
   revalidatePath("/forum");
-  redirect("/forum");
+  // Return true to indicate successful deletion; the caller can handle navigation.
+  return true;
 }
 
 export async function editThread(threadId: number, formData: FormData) {
