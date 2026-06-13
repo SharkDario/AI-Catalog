@@ -5,6 +5,8 @@ import Link from "next/link";
 import { TrendingUp, Star, Layers, Eye, MessageSquare } from "lucide-react";
 import { HomeSearchBar } from "@/components/HomeSearchBar";
 
+export const dynamic = "force-dynamic";
+
 export default async function Home() {
   const [{ count: totalSoftware }] = await db.select({ count: sql`count(*)`.mapWith(Number) }).from(softwareItems);
   const [{ count: totalClassifications }] = await db.select({ count: sql`count(*)`.mapWith(Number) }).from(classifications);
