@@ -4,8 +4,10 @@ import { createClassification, deleteClassification, updateClassification } from
 import { Edit, ListPlus } from "lucide-react";
 import Link from "next/link";
 import { DeleteButton } from "@/components/DeleteButton";
+import { SaveSuccessToast } from "@/components/SaveSuccessToast";
+import { Suspense } from "react";
 
-export default async function AdminClassifications({ searchParams }: { searchParams: Promise<{ edit?: string }> }) {
+export default async function AdminClassifications({ searchParams }: { searchParams: Promise<{ edit?: string; saved?: string }> }) {
   const resolvedParams = await searchParams;
   const editId = resolvedParams.edit ? parseInt(resolvedParams.edit, 10) : null;
 
@@ -15,6 +17,12 @@ export default async function AdminClassifications({ searchParams }: { searchPar
 
   return (
     <div className="space-y-8">
+      <Suspense fallback={null}>
+        <SaveSuccessToast
+          messageCreate="Clasificación guardada con éxito."
+          messageUpdate="Clasificación actualizada con éxito."
+        />
+      </Suspense>
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-foreground">Gestión de Clasificaciones</h1>
         {editingItem && (

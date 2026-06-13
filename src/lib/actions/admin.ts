@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { classifications, softwareItems } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { checkIsAdmin } from "@/lib/auth";
 
 // --- Classifications ---
@@ -24,6 +25,7 @@ export async function createClassification(formData: FormData) {
 
   revalidatePath("/admin/classifications");
   revalidatePath("/classifications");
+  redirect("/admin/classifications?saved=created");
 }
 
 export async function updateClassification(id: number, formData: FormData) {
@@ -43,6 +45,7 @@ export async function updateClassification(id: number, formData: FormData) {
 
   revalidatePath("/admin/classifications");
   revalidatePath("/classifications");
+  redirect("/admin/classifications?saved=updated");
 }
 
 export async function deleteClassification(id: number) {
@@ -83,6 +86,7 @@ export async function createSoftwareItem(formData: FormData) {
 
   revalidatePath("/admin/catalog");
   revalidatePath("/catalog");
+  redirect("/admin/catalog?saved=created");
 }
 
 export async function updateSoftwareItem(id: number, formData: FormData) {
@@ -115,6 +119,7 @@ export async function updateSoftwareItem(id: number, formData: FormData) {
 
   revalidatePath("/admin/catalog");
   revalidatePath("/catalog");
+  redirect("/admin/catalog?saved=updated");
 }
 
 export async function deleteSoftwareItem(id: number) {

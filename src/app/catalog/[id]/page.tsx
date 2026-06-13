@@ -82,6 +82,9 @@ export default async function CatalogDetail({ params }: { params: Promise<{ id: 
               <span className="bg-primary/20 text-primary text-sm px-3 py-1 rounded-full font-medium">
                 {item.classification?.name}
               </span>
+              <span className="bg-muted text-muted-foreground text-xs px-3 py-1 rounded-full font-medium uppercase tracking-wider">
+                {item.software.type}
+              </span>
               <div className="flex items-center text-yellow-500 font-medium">
                 <Star className="h-5 w-5 mr-1 fill-current" />
                 {averageScore}
