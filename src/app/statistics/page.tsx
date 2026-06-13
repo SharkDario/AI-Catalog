@@ -65,9 +65,9 @@ export default async function StatisticsPage() {
       </div>
 
       <StatisticsDashboard 
-        softwareStats={softwareData}
-        classificationsStats={classificationData}
-        debatesStats={debateData}
+        softwareStats={softwareData as ItemStats[]}
+        classificationsStats={classificationData as ItemStats[]}
+        debatesStats={debateData as ItemStats[]}
       />
     </div>
   );

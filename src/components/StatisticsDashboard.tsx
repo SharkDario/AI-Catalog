@@ -38,8 +38,8 @@ export interface ItemStats {
   rating3: number;
   rating4: number;
   rating5: number;
-  type?: string;
-  classificationId?: number;
+  type?: string | null;
+  classificationId?: number | null;
 }
 
 interface StatisticsDashboardProps {
