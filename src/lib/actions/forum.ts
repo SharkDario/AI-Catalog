@@ -57,11 +57,22 @@ export async function rateThread(formData: FormData) {
   
   if (!score || score < 1 || score > 5) return;
   
-  await db.insert(forumThreadRatings).values({
-    threadId,
-    userId: user.id,
-    score
-  });
+  const existingRating = await db.select().from(forumThreadRatings).where(and(
+    eq(forumThreadRatings.threadId, threadId),
+    eq(forumThreadRatings.userId, user.id)
+  ));
+
+  if (existingRating.length > 0) {
+    await db.update(forumThreadRatings)
+      .set({ score })
+      .where(eq(forumThreadRatings.id, existingRating[0].id));
+  } else {
+    await db.insert(forumThreadRatings).values({
+      threadId,
+      userId: user.id,
+      score
+    });
+  }
   revalidatePath(`/forum/${threadId}`);
   revalidatePath("/forum");
 }

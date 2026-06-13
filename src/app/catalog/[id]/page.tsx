@@ -38,6 +38,15 @@ export default async function CatalogDetail({ params }: { params: Promise<{ id: 
 
   const user = await currentUser();
 
+  let userRating = 0;
+  if (user) {
+    const existing = await db.select().from(ratings).where(require("drizzle-orm").and(
+      eq(ratings.softwareItemId, itemId),
+      eq(ratings.userId, user.id)
+    ));
+    if (existing.length > 0) userRating = existing[0].score;
+  }
+
   async function submitRating(formData: FormData) {
     "use server";
     const currentUserData = await currentUser();
@@ -45,11 +54,22 @@ export default async function CatalogDetail({ params }: { params: Promise<{ id: 
     const score = parseInt(formData.get("score") as string, 10);
     if (!score || score < 1 || score > 5) return;
     
-    await db.insert(ratings).values({
-      softwareItemId: itemId,
-      userId: currentUserData.id,
-      score
-    });
+    const existingRating = await db.select().from(ratings).where(require("drizzle-orm").and(
+      eq(ratings.softwareItemId, itemId),
+      eq(ratings.userId, currentUserData.id)
+    ));
+
+    if (existingRating.length > 0) {
+      await db.update(ratings)
+        .set({ score })
+        .where(eq(ratings.id, existingRating[0].id));
+    } else {
+      await db.insert(ratings).values({
+        softwareItemId: itemId,
+        userId: currentUserData.id,
+        score
+      });
+    }
     revalidatePath(`/catalog/${itemId}`);
   }
 
@@ -170,7 +190,7 @@ export default async function CatalogDetail({ params }: { params: Promise<{ id: 
             ) : (
               <form action={submitRating}>
                 <input type="hidden" name="softwareItemId" value={itemId} />
-                <StarRating name="score" value={0} autoSubmit />
+                <StarRating name="score" value={userRating} autoSubmit />
               </form>
             )}
           </div>

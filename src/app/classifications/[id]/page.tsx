@@ -68,6 +68,15 @@ export default async function ClassificationDetail({
 
   const user = await currentUser();
 
+  let userRating = 0;
+  if (user) {
+    const existing = await db.select().from(classificationRatings).where(and(
+      eq(classificationRatings.classificationId, classificationId),
+      eq(classificationRatings.userId, user.id)
+    ));
+    if (existing.length > 0) userRating = existing[0].score;
+  }
+
   async function submitRating(formData: FormData) {
     "use server";
     const currentUserData = await currentUser();
@@ -75,11 +84,22 @@ export default async function ClassificationDetail({
     const score = parseInt(formData.get("score") as string, 10);
     if (!score || score < 1 || score > 5) return;
 
-    await db.insert(classificationRatings).values({
-      classificationId,
-      userId: currentUserData.id,
-      score
-    });
+    const existingRating = await db.select().from(classificationRatings).where(and(
+      eq(classificationRatings.classificationId, classificationId),
+      eq(classificationRatings.userId, currentUserData.id)
+    ));
+
+    if (existingRating.length > 0) {
+      await db.update(classificationRatings)
+        .set({ score })
+        .where(eq(classificationRatings.id, existingRating[0].id));
+    } else {
+      await db.insert(classificationRatings).values({
+        classificationId,
+        userId: currentUserData.id,
+        score
+      });
+    }
     revalidatePath(`/classifications/${classificationId}`);
     revalidatePath("/classifications");
   }
@@ -215,7 +235,7 @@ export default async function ClassificationDetail({
               </div>
             ) : (
               <form action={submitRating}>
-                <StarRating name="score" value={0} autoSubmit />
+                <StarRating name="score" value={userRating} autoSubmit />
               </form>
             )}
           </div>

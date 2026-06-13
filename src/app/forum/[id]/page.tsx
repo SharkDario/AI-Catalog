@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { forumThreads, forumComments, classifications, softwareItems, forumThreadRatings } from "@/db/schema";
-import { eq, sql, avg, desc } from "drizzle-orm";
+import { eq, sql, avg, desc, and } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { currentUser, clerkClient } from "@clerk/nextjs/server";
 import { createComment, deleteThread, editThread, rateThread } from "@/lib/actions/forum";
@@ -43,6 +43,15 @@ export default async function ThreadDetail({ params, searchParams }: { params: P
   const commentsData = await db.select().from(forumComments).where(eq(forumComments.threadId, threadId)).orderBy(forumComments.createdAt);
   
   const user = await currentUser();
+
+  let userRating = 0;
+  if (user) {
+    const existing = await db.select().from(forumThreadRatings).where(and(
+      eq(forumThreadRatings.threadId, threadId),
+      eq(forumThreadRatings.userId, user.id)
+    ));
+    if (existing.length > 0) userRating = existing[0].score;
+  }
 
   // Recopilar IDs de usuarios
   const userIdsToFetch = new Set<string>();
@@ -136,9 +145,9 @@ export default async function ThreadDetail({ params, searchParams }: { params: P
             <div className="flex items-center justify-between border-t border-border pt-6 mt-8">
               <h3 className="font-bold text-foreground">¿Cómo calificas este debate?</h3>
               {user ? (
-                <form action={rateThread} className="flex items-center">
+                <form action={rateThread}>
                   <input type="hidden" name="threadId" value={thread.id} />
-                  <StarRating name="score" autoSubmit />
+                  <StarRating name="score" value={userRating} autoSubmit />
                 </form>
               ) : (
                 <span className="text-sm text-muted-foreground"><Link href="/sign-in" className="text-primary hover:underline">Inicia sesión</Link> para calificar</span>
