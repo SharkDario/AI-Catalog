@@ -57,6 +57,7 @@ export function VoiceSearchAssistant() {
     setIsLoading(true);
 
     try {
+      // 1. Obtener contexto del backend
       const res = await fetch("/api/assistant", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -64,14 +65,37 @@ export function VoiceSearchAssistant() {
       });
       const data = await res.json();
       
-      if (data.answer) {
-        setMessages(prev => [...prev, { role: "assistant", content: data.answer }]);
-        speakAnswer(data.answer);
-      } else if (data.error) {
-        setMessages(prev => [...prev, { role: "assistant", content: `Error: ${data.error}` }]);
-      }
+      const systemPrompt = data.systemPrompt || "Eres un asistente virtual.";
+
+      const ollamaMessages = [
+        { role: "system", content: systemPrompt },
+        ...newMessages,
+      ];
+
+      // 2. Hacer la petición local a Ollama (Cliente)
+      const ollamaRes = await fetch("http://localhost:11434/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "llama3.2:3b",
+          messages: ollamaMessages,
+          stream: false,
+        }),
+      });
+
+      if (!ollamaRes.ok) throw new Error("Error en Ollama");
+
+      const ollamaData = await ollamaRes.json();
+      const answer = ollamaData.message.content;
+
+      setMessages(prev => [...prev, { role: "assistant", content: answer }]);
+      speakAnswer(answer);
+      
     } catch (e: any) {
-      setMessages(prev => [...prev, { role: "assistant", content: `Error de red: ${e.message}` }]);
+      setMessages(prev => [
+        ...prev, 
+        { role: "assistant", content: `Hubo un error al conectar con Ollama en localhost:11434. Asegúrate de tenerlo instalado y ejecutándose localmente.` }
+      ]);
     } finally {
       setIsLoading(false);
     }

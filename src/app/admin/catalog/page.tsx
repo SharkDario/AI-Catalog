@@ -41,6 +41,14 @@ export default async function AdminCatalog({ searchParams }: { searchParams: Pro
               <input name="name" defaultValue={editingItem?.name} required className="w-full bg-background border border-input rounded-md px-3 py-2 focus:ring-2 focus:ring-ring focus:outline-none" />
             </div>
             <div className="space-y-2">
+              <label className="text-sm font-medium">Tipo</label>
+              <select name="type" defaultValue={editingItem?.type || "App"} required className="w-full bg-background border border-input rounded-md px-3 py-2 focus:ring-2 focus:ring-ring focus:outline-none text-foreground">
+                <option value="App">App</option>
+                <option value="Librería">Librería</option>
+                <option value="Modelo">Modelo</option>
+              </select>
+            </div>
+            <div className="space-y-2">
               <label className="text-sm font-medium">Categoría (Clasificación)</label>
               <select name="classificationId" defaultValue={editingItem?.classificationId} required className="w-full bg-background border border-input rounded-md px-3 py-2 focus:ring-2 focus:ring-ring focus:outline-none text-foreground">
                 <option value="">Seleccione...</option>

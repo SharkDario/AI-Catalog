@@ -22,6 +22,7 @@ export const softwareItems = pgTable('software_items', {
   id: serial('id').primaryKey(),
   classificationId: integer('classification_id').references(() => classifications.id, { onDelete: 'cascade' }).notNull(),
   name: text('name').notNull(),
+  type: text('type').default('App').notNull(),
   objective: text('objective').notNull(),
   accessUrl: text('access_url').notNull(),
   licenseType: text('license_type').notNull(),

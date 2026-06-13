@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import { currentUser } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import Link from "next/link";
-import { ArrowLeft, ExternalLink, Star } from "lucide-react";
+import { ArrowLeft, ExternalLink, Star, MessageSquare } from "lucide-react";
 import { StarRating } from "@/components/StarRating";
 import { CatalogAssistant } from "@/components/CatalogAssistant";
 
@@ -31,6 +31,10 @@ export default async function CatalogDetail({ params }: { params: Promise<{ id: 
   const [ratingData] = await db.select({
     avgScore: avg(ratings.score)
   }).from(ratings).where(eq(ratings.softwareItemId, itemId));
+
+  const relatedThreads = await db.select()
+    .from(require("@/db/schema").forumThreads)
+    .where(eq(require("@/db/schema").forumThreads.softwareItemId, itemId));
 
   const user = await currentUser();
 
@@ -126,6 +130,30 @@ export default async function CatalogDetail({ params }: { params: Promise<{ id: 
               </div>
             </div>
           )}
+
+          <div className="space-y-6 mt-12">
+            <h2 className="text-2xl font-bold flex items-center gap-2 text-foreground border-b border-border pb-2">
+              <MessageSquare className="w-6 h-6 text-primary" /> Foro de Debates Asociado
+            </h2>
+            {relatedThreads.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {relatedThreads.map((thread: any) => (
+                  <Link href={`/forum/${thread.id}`} key={thread.id} className="bg-card border border-border rounded-xl p-6 hover:shadow-glow hover:border-primary/50 transition-all group">
+                    <h3 className="font-bold text-xl text-foreground mb-2 group-hover:text-primary transition-colors">{thread.title}</h3>
+                    <p className="text-sm text-muted-foreground line-clamp-2 mb-4">{thread.content}</p>
+                    <div className="flex justify-between items-center text-xs font-bold uppercase tracking-wider">
+                      <span className="text-muted-foreground">{thread.views} vistas</span>
+                      <span className="text-primary group-hover:underline">Ver Debate &rarr;</span>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <div className="bg-card border border-border p-8 rounded-xl text-center text-muted-foreground">
+                No hay debates asociados a este software aún.
+              </div>
+            )}
+          </div>
 
           <div className="bg-card border border-border p-8 rounded-xl shadow-sm mt-12 flex flex-col items-center justify-center text-center">
             <h3 className="text-2xl font-bold mb-2">¿Cómo nos calificas?</h3>

@@ -38,6 +38,8 @@ export interface ItemStats {
   rating3: number;
   rating4: number;
   rating5: number;
+  type?: string;
+  classificationId?: number;
 }
 
 interface StatisticsDashboardProps {
@@ -48,12 +50,23 @@ interface StatisticsDashboardProps {
 
 export function StatisticsDashboard({ classificationsStats, softwareStats, debatesStats }: StatisticsDashboardProps) {
   const [activeTab, setActiveTab] = useState<'software' | 'classifications' | 'debates'>('software');
+  const [softwareType, setSoftwareType] = useState<string>('');
+  const [softwareClassification, setSoftwareClassification] = useState<string>('');
 
   const getActiveData = () => {
     switch (activeTab) {
       case 'classifications': return classificationsStats;
-      case 'software': return softwareStats;
-      case 'debates': return debatesStats;
+      case 'software': 
+      case 'debates': {
+        let data = activeTab === 'software' ? [...softwareStats] : [...debatesStats];
+        if (softwareType) {
+          data = data.filter(d => d.type === softwareType);
+        }
+        if (softwareClassification) {
+          data = data.filter(d => d.classificationId === Number(softwareClassification));
+        }
+        return data;
+      }
     }
   };
 
@@ -181,25 +194,53 @@ export function StatisticsDashboard({ classificationsStats, softwareStats, debat
   return (
     <div className="space-y-8 w-full max-w-7xl mx-auto">
       {/* Tabs */}
-      <div className="flex flex-wrap gap-2 mb-8 bg-card p-1.5 rounded-xl border border-border inline-flex">
-        <button
-          onClick={() => setActiveTab('software')}
-          className={`flex items-center gap-2 px-6 py-2.5 rounded-lg font-medium transition-all ${activeTab === 'software' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'}`}
-        >
-          <MonitorSmartphone className="w-4 h-4" /> Catálogo de Software
-        </button>
-        <button
-          onClick={() => setActiveTab('classifications')}
-          className={`flex items-center gap-2 px-6 py-2.5 rounded-lg font-medium transition-all ${activeTab === 'classifications' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'}`}
-        >
-          <Tag className="w-4 h-4" /> Clasificaciones
-        </button>
-        <button
-          onClick={() => setActiveTab('debates')}
-          className={`flex items-center gap-2 px-6 py-2.5 rounded-lg font-medium transition-all ${activeTab === 'debates' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'}`}
-        >
-          <MessageSquare className="w-4 h-4" /> Foros de Debate
-        </button>
+      <div className="flex flex-wrap gap-4 mb-8">
+        <div className="bg-card p-1.5 rounded-xl border border-border inline-flex">
+          <button
+            onClick={() => setActiveTab('software')}
+            className={`flex items-center gap-2 px-6 py-2.5 rounded-lg font-medium transition-all ${activeTab === 'software' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'}`}
+          >
+            <MonitorSmartphone className="w-4 h-4" /> Catálogo de Software
+          </button>
+          <button
+            onClick={() => setActiveTab('classifications')}
+            className={`flex items-center gap-2 px-6 py-2.5 rounded-lg font-medium transition-all ${activeTab === 'classifications' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'}`}
+          >
+            <Tag className="w-4 h-4" /> Clasificaciones
+          </button>
+          <button
+            onClick={() => setActiveTab('debates')}
+            className={`flex items-center gap-2 px-6 py-2.5 rounded-lg font-medium transition-all ${activeTab === 'debates' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'}`}
+          >
+            <MessageSquare className="w-4 h-4" /> Foros de Debate
+          </button>
+        </div>
+
+        {(activeTab === 'software' || activeTab === 'debates') && (
+          <div className="flex gap-4 items-center">
+            <select
+              value={softwareType}
+              onChange={(e) => setSoftwareType(e.target.value)}
+              className="bg-card border border-border rounded-lg py-2.5 px-4 text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+            >
+              <option value="">Todos los Tipos</option>
+              <option value="App">App</option>
+              <option value="Librería">Librería</option>
+              <option value="Modelo">Modelo</option>
+            </select>
+
+            <select
+              value={softwareClassification}
+              onChange={(e) => setSoftwareClassification(e.target.value)}
+              className="bg-card border border-border rounded-lg py-2.5 px-4 text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+            >
+              <option value="">Todas las Clasificaciones</option>
+              {classificationsStats.map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       {/* Metrics Cards */}

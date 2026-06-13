@@ -58,6 +58,7 @@ export async function createSoftwareItem(formData: FormData) {
   if (!(await checkIsAdmin())) throw new Error("Unauthorized");
 
   const name = formData.get("name") as string;
+  const type = formData.get("type") as string || "App";
   const objective = formData.get("objective") as string;
   const accessUrl = formData.get("accessUrl") as string;
   const licenseType = formData.get("licenseType") as string;
@@ -69,6 +70,7 @@ export async function createSoftwareItem(formData: FormData) {
 
   await db.insert(softwareItems).values({
     name,
+    type,
     objective,
     accessUrl,
     licenseType,
@@ -87,6 +89,7 @@ export async function updateSoftwareItem(id: number, formData: FormData) {
   if (!(await checkIsAdmin())) throw new Error("Unauthorized");
 
   const name = formData.get("name") as string;
+  const type = formData.get("type") as string || "App";
   const objective = formData.get("objective") as string;
   const accessUrl = formData.get("accessUrl") as string;
   const licenseType = formData.get("licenseType") as string;
@@ -98,6 +101,7 @@ export async function updateSoftwareItem(id: number, formData: FormData) {
 
   await db.update(softwareItems).set({
     name,
+    type,
     objective,
     accessUrl,
     licenseType,

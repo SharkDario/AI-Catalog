@@ -8,6 +8,8 @@ export default async function StatisticsPage() {
   const softwareData = await db.select({
     id: softwareItems.id,
     name: softwareItems.name,
+    type: softwareItems.type,
+    classificationId: softwareItems.classificationId,
     views: softwareItems.views,
     avgRating: sql<number>`COALESCE(AVG(${ratings.score}), 0)`.mapWith(Number),
     rating1: sql<number>`COUNT(CASE WHEN ${ratings.score} = 1 THEN 1 END)`.mapWith(Number),
@@ -38,6 +40,8 @@ export default async function StatisticsPage() {
   const debateData = await db.select({
     id: forumThreads.id,
     name: forumThreads.title,
+    type: softwareItems.type,
+    classificationId: sql<number>`COALESCE(${forumThreads.classificationId}, ${softwareItems.classificationId})`.mapWith(Number),
     views: forumThreads.views,
     avgRating: sql<number>`COALESCE(AVG(${forumThreadRatings.score}), 0)`.mapWith(Number),
     rating1: sql<number>`COUNT(CASE WHEN ${forumThreadRatings.score} = 1 THEN 1 END)`.mapWith(Number),
@@ -48,7 +52,8 @@ export default async function StatisticsPage() {
   })
   .from(forumThreads)
   .leftJoin(forumThreadRatings, eq(forumThreads.id, forumThreadRatings.threadId))
-  .groupBy(forumThreads.id);
+  .leftJoin(softwareItems, eq(forumThreads.softwareItemId, softwareItems.id))
+  .groupBy(forumThreads.id, softwareItems.id);
 
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-8">
