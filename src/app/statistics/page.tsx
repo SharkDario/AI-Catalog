@@ -4,6 +4,8 @@ import { sql, eq } from "drizzle-orm";
 import { BarChart2 } from "lucide-react";
 import { StatisticsDashboard, ItemStats } from "@/components/StatisticsDashboard";
 
+export const dynamic = "force-dynamic";
+
 export default async function StatisticsPage() {
   const softwareData = await db.select({
     id: softwareItems.id,
